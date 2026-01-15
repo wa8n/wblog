@@ -31,7 +31,7 @@ func Subscribe(c *gin.Context) {
 		var subscriber *models.Subscriber
 		subscriber, err = models.GetSubscriberByEmail(mail)
 		if err == nil {
-			if !subscriber.VerifyState && helpers.GetCurrentTime().After(subscriber.OutTime) { //激活链接超时
+			if !subscriber.VerifyState && helpers.GetCurrentTime().After(*subscriber.OutTime) { //激活链接超时
 				err = sendActiveEmail(subscriber)
 				if err == nil {
 					count, _ := models.CountSubscriber()
@@ -86,7 +86,8 @@ func Subscribe(c *gin.Context) {
 func sendActiveEmail(subscriber *models.Subscriber) (err error) {
 	uuid := helpers.UUID()
 	duration, _ := time.ParseDuration("30m")
-	subscriber.OutTime = helpers.GetCurrentTime().Add(duration)
+	expireTime := helpers.GetCurrentTime().Add(duration)
+	subscriber.OutTime = &expireTime
 	subscriber.SecretKey = uuid
 	signature := helpers.Md5(subscriber.Email + uuid + subscriber.OutTime.Format("20060102150405"))
 	subscriber.Signature = signature
@@ -113,12 +114,13 @@ func ActiveSubscriber(c *gin.Context) {
 		HandleMessage(c, "激活链接有误，请重新获取！")
 		return
 	}
-	if !helpers.GetCurrentTime().Before(subscriber.OutTime) {
+	if !helpers.GetCurrentTime().Before(*subscriber.OutTime) {
 		HandleMessage(c, "激活链接已过期，请重新获取！")
 		return
 	}
 	subscriber.VerifyState = true
-	subscriber.OutTime = helpers.GetCurrentTime()
+	expireTime := helpers.GetCurrentTime()
+	subscriber.OutTime = &expireTime
 	err = subscriber.Update()
 	if err != nil {
 		HandleMessage(c, fmt.Sprintf("激活失败！%s", err.Error()))

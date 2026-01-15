@@ -58,18 +58,18 @@ type PostTag struct {
 // table users
 type User struct {
 	gorm.Model
-	Email         string    `gorm:"uniqueIndex;default:null"` //邮箱
-	Telephone     string    `gorm:"uniqueIndex;default:null"` //手机号码
-	Password      string    `gorm:"default:null"`             //密码
-	VerifyState   string    `gorm:"default:'0'"`              //邮箱验证状态
-	SecretKey     string    `gorm:"default:null"`             //密钥
-	OutTime       time.Time //过期时间
-	GithubLoginId string    `gorm:"uniqueIndex;default:null"` // github唯一标识
-	GithubUrl     string    //github地址
-	IsAdmin       bool      //是否是管理员
-	AvatarUrl     string    // 头像链接
-	NickName      string    // 昵称
-	LockState     bool      `gorm:"default:false"` //锁定状态
+	Email         string     `gorm:"uniqueIndex;default:null"` //邮箱
+	Telephone     string     `gorm:"uniqueIndex;default:null"` //手机号码
+	Password      string     `gorm:"default:null"`             //密码
+	VerifyState   string     `gorm:"default:'0'"`              //邮箱验证状态
+	SecretKey     string     `gorm:"default:null"`             //密钥
+	OutTime       *time.Time //过期时间
+	GithubLoginId string     `gorm:"uniqueIndex;default:null"` // github唯一标识
+	GithubUrl     string     //github地址
+	IsAdmin       bool       //是否是管理员
+	AvatarUrl     string     // 头像链接
+	NickName      string     // 昵称
+	LockState     bool       `gorm:"default:false"` //锁定状态
 }
 
 // table comments
@@ -88,12 +88,12 @@ type Comment struct {
 // table subscribe
 type Subscriber struct {
 	gorm.Model
-	Email          string    `gorm:"type:varchar(255);uniqueIndex"` //邮箱
-	VerifyState    bool      `gorm:"default:false"`                 //验证状态
-	SubscribeState bool      `gorm:"default:true"`                  //订阅状态
-	OutTime        time.Time //过期时间
-	SecretKey      string    // 秘钥
-	Signature      string    //签名
+	Email          string     `gorm:"type:varchar(191);uniqueIndex"` //邮箱
+	VerifyState    bool       `gorm:"default:false"`                 //验证状态
+	SubscribeState bool       `gorm:"default:true"`                  //订阅状态
+	OutTime        *time.Time //过期时间
+	SecretKey      string     // 秘钥
+	Signature      string     //签名
 }
 
 // table link
