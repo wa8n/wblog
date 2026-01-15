@@ -8,6 +8,9 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"path/filepath"
+	"regexp"
+	"time"
 
 	"github.com/cihub/seelog"
 	"github.com/gin-gonic/gin"
@@ -48,6 +51,15 @@ func RestorePost(c *gin.Context) {
 		res["message"] = "fileName cannot be empty."
 		return
 	}
+	if !isValidFileName(fileName) {
+		res["message"] = "Invalid fileName format. Only alphanumeric, ., -, _ are allowed."
+		return
+	}
+	baseName := filepath.Base(fileName)
+	if baseName != fileName {
+		res["message"] = "Invalid fileName: path traversal is not allowed."
+		return
+	}
 
 	if cfg.Database.Dialect != "sqlite" {
 		res["message"] = "only support sqlite dialect"
@@ -58,13 +70,32 @@ func RestorePost(c *gin.Context) {
 		return
 	}
 
-	fileUrl = cfg.Qiniu.FileServer + fileName
-	resp, err = http.Get(fileUrl)
+	trustedBaseURL := cfg.Qiniu.FileServer
+	parsedBaseURL, err := url.Parse(trustedBaseURL)
+	if err != nil || parsedBaseURL.Scheme != "https" {
+		res["message"] = "Internal server configuration error."
+		return
+	}
+	finalURL, err := url.JoinPath(trustedBaseURL, baseName)
+	if err != nil {
+		res["message"] = "Internal error constructing URL."
+		return
+	}
+	fileUrl = finalURL
+
+	client := &http.Client{
+		Timeout: time.Second * 30,
+	}
+	resp, err = client.Get(fileUrl)
 	if err != nil {
 		res["message"] = err.Error()
 		return
 	}
 	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		res["message"] = fmt.Sprintf("Failed to fetch file (server returned %d).", resp.StatusCode)
+		return
+	}
 
 	bodyBytes, err = ioutil.ReadAll(resp.Body)
 	if err != nil {
@@ -84,6 +115,13 @@ func RestorePost(c *gin.Context) {
 		return
 	}
 	res["succeed"] = true
+}
+
+func isValidFileName(name string) bool {
+	// 匹配：字母、数字、点(.)、下划线(_)、短横线(-)
+	pattern := `^[a-zA-Z0-9._-]+$`
+	matched, _ := regexp.MatchString(pattern, name)
+	return matched
 }
 
 func Backup() (err error) {
